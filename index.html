@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biodata & Push Notification Demo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">আপনার বায়োডাটা</h2>
+        <p class="text-sm text-gray-500 mb-6 text-center">তথ্যগুলো পূরণ করুন এবং পুশ নোটিফিকেশন চালু করুন</p>
+        
+        <!-- Biodata Form -->
+        <form id="biodataForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">নাম</label>
+                <input type="text" id="userName" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">বয়স</label>
+                <input type="number" id="userAge" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">পেশা</label>
+                <input type="text" id="userJob" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            
+            <button type="submit" id="submitBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-medium transition duration-150">
+                তথ্য জমা দিন ও নোটিফিকেশন চালু করুন
+            </button>
+        </form>
+    </div>
+
+    <!-- Live Display Card -->
+    <div id="displayCard" class="max-w-md w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl shadow-xl p-6 hidden">
+        <h3 class="text-xl font-bold mb-4">সংরক্ষিত বায়োডাটা</h3>
+        <div class="space-y-2">
+            <p><span class="font-semibold opacity-75">নাম:</span> <span id="displayName"></span></p>
+            <p><span class="font-semibold opacity-75">বয়স:</span> <span id="displayAge"></span></p>
+            <p><span class="font-semibold opacity-75">পেশা:</span> <span id="displayJob"></span></p>
+        </div>
+        <div class="mt-4 pt-4 border-t border-white border-opacity-20 text-xs opacity-75">
+            <p>নোটিফিকেশন স্ট্যাটাস: <span id="notifStatus" class="font-bold text-yellow-300">চেক করা হচ্ছে...</span></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Compat (Easier for single HTML file) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+
+    <script>
+        // ১. আপনার ফায়ারবেজ কনফিগ এখানে বসান (ধাপ ১ থেকে পাওয়া)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // ফায়ারবেজ ইনিশিয়ালাইজ
+        firebase.initializeApp(firebaseConfig);
+        const messaging = firebase.messaging();
+
+        // গিটহাব পেজের সাব-ডিরেক্টরির জন্য ডায়নামিক পাথ সেটআপ
+        const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+
+        // সার্ভিস ওয়ার্কার রেজিস্টার করা
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(`${basePath}firebase-messaging-sw.js`)
+            .then((registration) => {
+                messaging.useServiceWorker(registration);
+                console.log('Service Worker Registered Successfully');
+            }).catch(err => console.error('Service Worker Registry Failed', err));
+        }
+
+        // পূর্বে সংরক্ষিত ডাটা থাকলে তা দেখানো
+        const savedName = localStorage.getItem('bio_name');
+        if (savedName) {
+            showCard();
+        }
+
+        // ফর্ম সাবমিট হ্যান্ডলার
+        document.getElementById('biodataForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "প্রসেসিং হচ্ছে...";
+
+            const name = document.getElementById('userName').value;
+            const age = document.getElementById('userAge').value;
+            const job = document.getElementById('userJob').value;
+
+            try {
+                // নোটিফিকেশন পারমিশন চাওয়া
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    // ২. আপনার VAPID Key এখানে বসান (ধাপ ৩ থেকে পাওয়া)
+                    const vapidKey = "YOUR_VAPID_PUBLIC_KEY"; 
+                    
+                    const token = await messaging.getToken({ vapidKey: vapidKey });
+                    console.log("FCM Token:", token);
+
+                    // ব্রাউজারে লোকাল স্টোরেজে ডাটা সেভ করা
+                    localStorage.setItem('bio_name', name);
+                    localStorage.setItem('bio_age', age);
+                    localStorage.setItem('bio_job', job);
+                    localStorage.setItem('fcm_token', token);
+
+                    showCard();
+                    document.getElementById('notifStatus').innerText = "সফলভাবে চালু হয়েছে";
+
+                    // ৩. ক্লাউডফ্লেয়ার ওয়ার্কারে ডাটা পাঠানো (আমরা পরে ওয়ার্কারের এপিআই এখানে বসাবো)
+                    await sendDataToCloudflare(name, age, job, token);
+                } else {
+                    alert("নোটিফিকেশন পারমিশন না দিলে আমরা পুশ পাঠাতে পারব না!");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "পুনরায় চেষ্টা করুন";
+                }
+            } catch (error) {
+                console.error("Error occurred:", error);
+                alert("একটি ত্রুটি ঘটেছে! কনসোল চেক করুন।");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "তথ্য জমা দিন ও নোটিফিকেশন চালু করুন";
+            }
+        });
+
+        function showCard() {
+            document.getElementById('displayName').innerText = localStorage.getItem('bio_name');
+            document.getElementById('displayAge').innerText = localStorage.getItem('bio_age');
+            document.getElementById('displayJob').innerText = localStorage.getItem('bio_job');
+            document.getElementById('displayCard').classList.remove('hidden');
+            document.getElementById('notifStatus').innerText = "সক্রিয়";
+        }
+
+        async function sendDataToCloudflare(name, age, job, token) {
+            // এই ফাংশনটি আপাতত ডেমো হিসেবে থাকবে। আমরা ক্লাউডফ্লেয়ার ওয়ার্কার তৈরি করার পর এখানে লিংক বসাবো।
+            console.log("Sending to Cloudflare Worker:", { name, age, job, token });
+        }
+    </script>
+</body>
+</html>
