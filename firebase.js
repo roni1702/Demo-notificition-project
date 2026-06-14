@@ -1,7 +1,7 @@
+// firebase.js ফাইলের ভেতরের কোড
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// আপনার ফায়ারবেজ কনফিগ এখানে আবার বসাতে হবে
 const firebaseConfig = {
     apiKey: "AIzaSyDpUsQUdwkigIcQf-oCM7Ktzu7bgB3hxOc",
     authDomain: "my-push-demo-bf786.firebaseapp.com",
@@ -15,15 +15,12 @@ firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
-// ব্যাকগ্রাউন্ড নোটিফিকেশন রিসিভ করার হ্যান্ডলার
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase.js] Received background message ', payload);
-  
+  console.log('Received background message ', payload);
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
     icon: payload.notification.icon || '/firebase-logo.png'
   };
-
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
