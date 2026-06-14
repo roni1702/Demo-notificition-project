@@ -100,7 +100,7 @@
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     // ২. আপনার VAPID Key এখানে বসান (ধাপ ৩ থেকে পাওয়া)
-                    const vapidKey = "YOUR_VAPID_PUBLIC_KEY"; 
+                    const vapidKey = "v6m-Hr0Om_Fez6Hlat9y_16ye6eSbltNMGsDD0QcOn8"; 
                     
                     const token = await messaging.getToken({ vapidKey: vapidKey });
                     console.log("FCM Token:", token);
