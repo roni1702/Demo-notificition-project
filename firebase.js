@@ -17,7 +17,7 @@ const messaging = firebase.messaging();
 
 // ব্যাকগ্রাউন্ড নোটিফিকেশন রিসিভ করার হ্যান্ডলার
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('[firebase.js] Received background message ', payload);
   
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
