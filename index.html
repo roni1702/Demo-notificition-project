@@ -69,11 +69,14 @@
         // গিটহাব পেজের সাব-ডিরেক্টরির জন্য ডায়নামিক পাথ সেটআপ
         const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
 
+        // ১. সার্ভিস ওয়ার্কার সেভ করার জন্য একটি গ্লোবাল ভ্যারিয়েবল নিলাম
+        let swRegistration = null;
+
         // সার্ভিস ওয়ার্কার রেজিস্টার করা
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register(`${basePath}firebase.js`)
             .then((registration) => {
-                messaging.useServiceWorker(registration);
+                swRegistration = registration; // এখানে রেফারেন্স সেভ করে রাখলাম
                 console.log('Service Worker Registered Successfully');
             }).catch(err => console.error('Service Worker Registry Failed', err));
         }
@@ -102,8 +105,11 @@
                     // ২. আপনার VAPID Key এখানে বসান (ধাপ ৩ থেকে পাওয়া)
                     const vapidKey = "BJLCzLueXj7eZnu5Uc7V6_XAHKkwFtiOVGXdHZBsu0jwSqD36u_wzBoe7HVua6c0gCB4A6VAHLuSWBzZaDvBHE4"; 
                     
-                    const token = await messaging.getToken({ vapidKey: vapidKey });
-                    console.log("FCM Token:", token);
+                    // এখানে serviceWorkerRegistration পাস করে দিলাম যাতে ফায়ারবেজ রুট ডিরেক্টরিতে খোঁজা বন্ধ করে
+                    const token = await messaging.getToken({ 
+                        vapidKey: vapidKey,
+                        serviceWorkerRegistration: swRegistration 
+                    });
 
                     // ব্রাউজারে লোকাল স্টোরেজে ডাটা সেভ করা
                     localStorage.setItem('bio_name', name);
