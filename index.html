@@ -122,12 +122,13 @@
                     submitBtn.innerText = "পুনরায় চেষ্টা করুন";
                 }
             } catch (error) {
-                console.error("Error occurred:", error);
-                alert("একটি ত্রুটি ঘটেছে! কনসোল চেক করুন।");
-                submitBtn.disabled = false;
-                submitBtn.innerText = "তথ্য জমা দিন ও নোটিফিকেশন চালু করুন";
-            }
-        });
+    console.error("Error occurred:", error);
+    // এই নিচের লাইনটি পরিবর্তন করুন:
+    alert("ভুলটি হলো: " + error.toString() + "\n\nমেসেজ: " + error.message);
+    submitBtn.disabled = false;
+    submitBtn.innerText = "তথ্য জমা দিন ও নোটিফিকেশন চালু করুন";
+        }
+        };
 
         function showCard() {
             document.getElementById('displayName').innerText = localStorage.getItem('bio_name');
