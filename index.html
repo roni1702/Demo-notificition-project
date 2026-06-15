@@ -145,9 +145,21 @@
         }
 
         async function sendDataToCloudflare(name, age, job, token) {
-            // এই ফাংশনটি আপাতত ডেমো হিসেবে থাকবে। আমরা ক্লাউডফ্লেয়ার ওয়ার্কার তৈরি করার পর এখানে লিংক বসাবো।
-            console.log("Sending to Cloudflare Worker:", { name, age, job, token });
-        }
+    // আপনার লাইভ ওয়ার্কার ইউআরএল (এটি একদম সঠিক)
+    const workerUrl = "https://biodata-api.mdroni5219.workers.dev/api/register";
+
+    try {
+        const response = await fetch(workerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, age, job, token })
+        });
+        const data = await response.json();
+        console.log("Cloudflare Response:", data);
+    } catch (error) {
+        console.error("Cloudflare-এ ডাটা পাঠাতে ব্যর্থ:", error);
+    }
+            }
     </script>
 </body>
 </html>
